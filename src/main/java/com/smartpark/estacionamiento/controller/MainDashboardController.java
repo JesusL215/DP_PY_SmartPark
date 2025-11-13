@@ -5,6 +5,7 @@ import com.smartpark.estacionamiento.model.dao.TicketDAO;
 import com.smartpark.estacionamiento.model.dao.VehiculoDAO;
 import com.smartpark.estacionamiento.model.domain.ParkingSlot;
 import com.smartpark.estacionamiento.model.service.ParkingService;
+import com.smartpark.estacionamiento.model.domain.Ticket;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
@@ -21,6 +22,7 @@ public class MainDashboardController {
 
     private ParkingService parkingService;
     private ParkingSlotDAO parkingSlotDAO;
+    private TicketDAO ticketDAO;
 
     @FXML
     public void initialize() {
@@ -55,7 +57,47 @@ public class MainDashboardController {
             mostrarAlerta(Alert.AlertType.INFORMATION, "Éxito", "Vehículo " + placa + " registrado.");
 
             placaTextField.clear();
+            tipoVehiculoComboBox.getSelectionModel().clearSelection(); // <-- (Opcional) Limpia el combobox
+            slotComboBox.getSelectionModel().clearSelection();
             cargarSlotsDisponibles();
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error en el Registro", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Maneja el clic en el botón "Registrar Salida".
+     */
+    @FXML
+    private void handleRegistrarSalida() {
+        String placa = placaSalidaTextField.getText();
+        if (placa.isEmpty()) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "Debe ingresar una placa.");
+            return;
+        }
+
+        try {
+            // 1. Buscamos el ticket activo usando el nuevo método del DAO
+            Ticket ticketActivo = ticketDAO.findActiveTicketByPlaca(placa);
+
+            if (ticketActivo == null) {
+                mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se encontró un ticket activo para la placa " + placa);
+                return;
+            }
+
+            // 2. Usamos el ParkingService (Facade) para registrar la salida
+            Ticket ticketPagado = parkingService.registrarSalida(ticketActivo.getId());
+
+            // 3. Mostramos el resultado
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Salida Registrada",
+                    "Salida exitosa para " + placa + ".\n" +
+                            "Monto a pagar: S/ " + String.format("%.2f", ticketPagado.getMontoPagado()));
+
+            // 4. Limpiamos y recargamos
+            placaSalidaTextField.clear();
+            cargarSlotsDisponibles(); // El slot liberado ahora aparecerá
+
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error en el Registro", e.getMessage());
             e.printStackTrace();

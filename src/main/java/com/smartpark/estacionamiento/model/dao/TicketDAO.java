@@ -63,4 +63,27 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         t.setParkingSlot(parkingSlotDAO.get(rs.getLong("parkingslot_id"))); // Reconstruye el objeto
         return t;
     }
+    /**
+     * Busca un ticket activo (no pagado) usando la placa del vehículo.
+     * @param placa La placa del vehículo.
+     * @return El Ticket activo, o null si no se encuentra.
+     */
+    public Ticket findActiveTicketByPlaca(String placa) {
+        // Esta consulta SQL une las tablas tickets y vehiculos
+        String sql = "SELECT t.* FROM tickets t " +
+                "JOIN vehiculos v ON t.vehiculo_id = v.id " +
+                "WHERE v.placa = ? AND t.estado = 'ACTIVO'";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, placa);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                // Usamos el helper que ya tenías para crear el objeto Ticket
+                return extractTicketFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // No se encontró un ticket activo para esa placa
+    }
 }

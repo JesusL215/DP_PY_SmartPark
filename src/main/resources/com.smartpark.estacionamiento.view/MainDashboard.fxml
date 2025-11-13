@@ -39,6 +39,21 @@
                 <ComboBox fx:id="slotComboBox" promptText="Seleccionar espacio" />
             </HBox>
             <Button text="Registrar Entrada" onAction="#handleRegistrarEntrada" style="-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;" />
+            <Button text="Registrar Entrada" onAction="#handleRegistrarEntrada" style="-fx-font-size: 14px; -fx-background-color: #4CAF50; -fx-text-fill: white;" />
+
+            <Label text="--- Registrar Salida ---" style="-fx-padding: 10 0 0 0;">
+                <font><Font name="System Bold" size="16.0" /></font>
+            </Label>
+
+            <HBox alignment="CENTER" spacing="10.0">
+                <Label text="Placa:" />
+                <TextField fx:id="placaSalidaTextField" promptText="ABC-123" />
+            </HBox>
+
+            <Button text="Registrar Salida"
+                    onAction="#handleRegistrarSalida"
+                    style="-fx-font-size: 14px; -fx-background-color: #f44336; -fx-text-fill: white;" />
+
         </VBox>
     </center>
 

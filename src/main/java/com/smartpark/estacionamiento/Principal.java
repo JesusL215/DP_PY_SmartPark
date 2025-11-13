@@ -12,7 +12,7 @@ public class Principal extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            String fxmlPath = "resources/com/smartpark/estacionamiento/view/MainDashboard.fxml";
+            String fxmlPath = "/com/smartpark/estacionamiento/view/MainDashboard.fxml";
             URL fxmlUrl = getClass().getResource(fxmlPath);
             if (fxmlUrl == null) {
                 throw new IOException("No se pudo encontrar el archivo FXML: " + fxmlPath);
