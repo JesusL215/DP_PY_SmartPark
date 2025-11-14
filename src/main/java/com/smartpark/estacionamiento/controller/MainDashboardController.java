@@ -19,6 +19,7 @@ public class MainDashboardController {
     @FXML private ComboBox<String> tipoVehiculoComboBox;
     @FXML private ComboBox<String> slotComboBox;
     @FXML private Label statusLabel;
+    @FXML private TextField placaSalidaTextField;
 
     private ParkingService parkingService;
     private ParkingSlotDAO parkingSlotDAO;
@@ -28,7 +29,7 @@ public class MainDashboardController {
     public void initialize() {
         // --- Inyección de Dependencias (Manual) ---
         VehiculoDAO vehiculoDAO = new VehiculoDAO();
-        TicketDAO ticketDAO = new TicketDAO();
+        this.ticketDAO = new TicketDAO();
         this.parkingSlotDAO = new ParkingSlotDAO();
         this.parkingService = new ParkingService(vehiculoDAO, ticketDAO, parkingSlotDAO);
 
