@@ -1,7 +1,10 @@
 package com.smartpark.estacionamiento.model.service;
+
 import com.smartpark.estacionamiento.model.dao.*;
 import com.smartpark.estacionamiento.model.domain.*;
 import java.time.LocalDateTime;
+import com.smartpark.estacionamiento.patrones.creacional.factory.VehiculoFactory;
+
 public class ParkingService {
     private VehiculoDAO vehiculoDAO;
     private TicketDAO ticketDAO;
@@ -16,7 +19,7 @@ public class ParkingService {
     public Ticket registrarEntrada(String placa, String tipoVehiculo, Long slotId) throws Exception {
         Vehiculo vehiculo = vehiculoDAO.findByPlaca(placa);
         if (vehiculo == null) {
-            vehiculo = new Vehiculo(placa, tipoVehiculo, "N/A");
+            vehiculo = VehiculoFactory.createVehiculo(tipoVehiculo, placa, "N/A");
             vehiculoDAO.save(vehiculo);
         }
         ParkingSlot slot = parkingSlotDAO.get(slotId);
@@ -42,7 +45,8 @@ public class ParkingService {
             throw new Exception("Ticket no válido.");
         }
         ticket.setHoraSalida(LocalDateTime.now());
-        double monto = calcularTarifa(ticket.getHoraEntrada(), ticket.getHoraSalida());
+        // Ahora, el monto se calcula basado en la tarifa del Vehiculo
+        double monto = calcularTarifa(ticket.getHoraEntrada(), ticket.getHoraSalida(), ticket.getVehiculo());
         ticket.setMontoPagado(monto);
         ticket.setEstado("PAGADO");
 
@@ -55,9 +59,17 @@ public class ParkingService {
         return ticket;
     }
 
-    private double calcularTarifa(LocalDateTime entrada, LocalDateTime salida) {
+    /**
+     * El método de tarifa ahora usa el objeto Vehiculo
+     * para obtener la tarifa correcta (polimorfismo).
+     */
+    private double calcularTarifa(LocalDateTime entrada, LocalDateTime salida, Vehiculo vehiculo) {
         long horas = java.time.Duration.between(entrada, salida).toHours();
-        if (horas < 1) horas = 1; // Cobro mínimo
-        return horas * 5.0; // Tarifa simple: 5 por hora
+        if (horas < 1) horas = 1; // Cobro mínimo de 1 hora
+
+        // Obtenemos la tarifa del objeto (5.0 para Auto, 2.5 para Moto)
+        double tarifaPorHora = vehiculo.getTarifaPorHora();
+
+        return horas * tarifaPorHora;
     }
 }
