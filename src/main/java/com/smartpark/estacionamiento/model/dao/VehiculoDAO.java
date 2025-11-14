@@ -1,9 +1,11 @@
 package com.smartpark.estacionamiento.model.dao;
 import com.smartpark.estacionamiento.model.domain.Vehiculo;
 import com.smartpark.estacionamiento.patrones.creacional.singleton.DBConnection;
+import com.smartpark.estacionamiento.patrones.creacional.factory.VehiculoFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 public class VehiculoDAO implements IDAO<Vehiculo, Long> {
     private Connection connection = DBConnection.getInstance().getConnection();
     public Vehiculo findByPlaca(String placa) {
@@ -37,12 +39,21 @@ public class VehiculoDAO implements IDAO<Vehiculo, Long> {
     public void update(Vehiculo vehiculo) { /* ... implement... */ }
     @Override
     public void delete(Vehiculo vehiculo) { /* ... implement... */ }
+
     private Vehiculo extractVehiculoFromResultSet(ResultSet rs) throws SQLException {
-        Vehiculo v = new Vehiculo();
-        v.setId(rs.getLong("id"));
-        v.setPlaca(rs.getString("placa"));
-        v.setTipoVehiculo(rs.getString("tipoVehiculo"));
-        v.setPropietario(rs.getString("propietario"));
-        return v;
+
+        // 1. Obtenemos los datos de la BD
+        long id = rs.getLong("id");
+        String placa = rs.getString("placa");
+        String tipoVehiculo = rs.getString("tipoVehiculo"); // Ej: "Auto" o "Moto"
+        String propietario = rs.getString("propietario");
+
+        // 2. Usamos la Fábrica para crear la instancia correcta
+        Vehiculo vehiculo = VehiculoFactory.createVehiculo(tipoVehiculo, placa, propietario);
+
+        // 3. Asignamos el ID de la base de datos
+        vehiculo.setId(id);
+
+        return vehiculo;
     }
 }
