@@ -36,7 +36,20 @@ public class MainDashboardController {
         statusLabel.setText("Bienvenido. Listo para operar.");
         tipoVehiculoComboBox.getItems().addAll("Auto", "Moto");
 
-        cargarSlotsDisponibles();
+        // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+
+        // 1. Llama al método al inicio para deshabilitar el slotComboBox
+        //    ya que todavía no se ha seleccionado ningún tipo de vehículo.
+        cargarSlotsDisponibles(null);
+
+        // 2. Añade un listener para reaccionar a los cambios de tipo de vehículo
+        tipoVehiculoComboBox.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> {
+                    // 'newValue' es el string "Auto" o "Moto" que el usuario acaba de seleccionar.
+                    // Llama al método de carga de slots con el nuevo tipo.
+                    cargarSlotsDisponibles(newValue);
+                }
+        );
     }
 
     @FXML
@@ -58,9 +71,7 @@ public class MainDashboardController {
             mostrarAlerta(Alert.AlertType.INFORMATION, "Éxito", "Vehículo " + placa + " registrado.");
 
             placaTextField.clear();
-            tipoVehiculoComboBox.getSelectionModel().clearSelection(); // <-- (Opcional) Limpia el combobox
-            slotComboBox.getSelectionModel().clearSelection();
-            cargarSlotsDisponibles();
+            tipoVehiculoComboBox.getSelectionModel().clearSelection();
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error en el Registro", e.getMessage());
             e.printStackTrace();
@@ -97,7 +108,8 @@ public class MainDashboardController {
 
             // 4. Limpiamos y recargamos
             placaSalidaTextField.clear();
-            cargarSlotsDisponibles(); // El slot liberado ahora aparecerá
+            String tipoSeleccionado = tipoVehiculoComboBox.getValue();
+            cargarSlotsDisponibles(tipoSeleccionado);
 
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error en el Registro", e.getMessage());
@@ -105,13 +117,40 @@ public class MainDashboardController {
         }
     }
 
-    private void cargarSlotsDisponibles() {
+    /**
+     * Carga los espacios (slots) en el ComboBox, filtrando por el tipo de vehículo
+     * y el estado "Disponible".
+     *
+     * @param tipoVehiculo El tipo de vehículo ("Auto", "Moto") o null.
+     */
+    private void cargarSlotsDisponibles(String tipoVehiculo) {
+        // 1. Limpia los items y deshabilita el ComboBox
+        slotComboBox.getItems().clear();
+        slotComboBox.setDisable(true); // Deshabilitado por defecto
+
+        // 2. Si no se ha seleccionado un tipo de vehículo, no mostramos nada.
+        if (tipoVehiculo == null) {
+            slotComboBox.setPromptText("Seleccione un tipo de vehículo");
+            return; // No sigas
+        }
+
+        // 3. Filtra la lista de TODOS los slots por DOS condiciones:
+        //    - El tipo de slot debe coincidir (ej. "Auto" == "Auto")
+        //    - El estado debe ser "Disponible"
         List<String> slotsDisponibles = parkingSlotDAO.getAll().stream()
-                .filter(slot -> slot.getCurrentState().getEstado().equals("Disponible"))
+                .filter(slot -> slot.getTipo().equalsIgnoreCase(tipoVehiculo) &&
+                        slot.getCurrentState().getEstado().equals("Disponible"))
                 .map(ParkingSlot::getNumeroSlot)
                 .collect(Collectors.toList());
-        slotComboBox.getItems().clear();
-        slotComboBox.getItems().addAll(slotsDisponibles);
+
+        // 4. Activa el ComboBox y muestra los slots si se encontraron
+        if (slotsDisponibles.isEmpty()) {
+            slotComboBox.setPromptText("No hay slots libres");
+        } else {
+            slotComboBox.getItems().addAll(slotsDisponibles);
+            slotComboBox.setPromptText("Seleccionar espacio");
+            slotComboBox.setDisable(false); // ¡Habilítalo!
+        }
     }
 
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String contenido) {

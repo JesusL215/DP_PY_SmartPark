@@ -18,7 +18,20 @@ public class VehiculoDAO implements IDAO<Vehiculo, Long> {
         return null;
     }
     @Override
-    public Vehiculo get(Long id) { /* ... implement... */ return null; }
+    public Vehiculo get(Long id) {
+        String sql = "SELECT * FROM vehiculos WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                // Usamos el helper que ya corregiste, que usa la Factory
+                return extractVehiculoFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
     @Override
     public List<Vehiculo> getAll() { /* ... implement... */ return new ArrayList<>(); }
     @Override
