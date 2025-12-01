@@ -8,10 +8,9 @@ public class DBConnection {
     private static volatile DBConnection instance;
     private Connection connection;
 
-    // !!! ACTUALIZA TU CONTRASEÑA AQUÍ !!!
     private static final String URL = "jdbc:mysql://localhost:3306/gestion_estacionamiento_db";
     private static final String USER = "root";
-    private static final String PASSWORD = "123"; //
+    private static final String PASSWORD = "root215"; //
 
     private DBConnection() {
         try {

@@ -13,6 +13,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import java.util.stream.Collectors;
 import java.util.List;
+import javafx.scene.control.CheckBox;
 
 public class MainDashboardController {
     @FXML private TextField placaTextField;
@@ -20,6 +21,7 @@ public class MainDashboardController {
     @FXML private ComboBox<String> slotComboBox;
     @FXML private Label statusLabel;
     @FXML private TextField placaSalidaTextField;
+    @FXML private CheckBox lavadoCheckBox;
 
     private ParkingService parkingService;
     private ParkingSlotDAO parkingSlotDAO;
@@ -27,7 +29,7 @@ public class MainDashboardController {
 
     @FXML
     public void initialize() {
-        // --- Inyección de Dependencias (Manual) ---
+        // --- Inyección de Dependencias ---
         VehiculoDAO vehiculoDAO = new VehiculoDAO();
         this.ticketDAO = new TicketDAO();
         this.parkingSlotDAO = new ParkingSlotDAO();
@@ -36,9 +38,7 @@ public class MainDashboardController {
         statusLabel.setText("Bienvenido. Listo para operar.");
         tipoVehiculoComboBox.getItems().addAll("Auto", "Moto");
 
-        // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-
-        // 1. Llama al método al inicio para deshabilitar el slotComboBox
+        // 1. Llama al metodo al inicio para deshabilitar el slotComboBox
         //    ya que todavía no se ha seleccionado ningún tipo de vehículo.
         cargarSlotsDisponibles(null);
 
@@ -46,7 +46,7 @@ public class MainDashboardController {
         tipoVehiculoComboBox.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, newValue) -> {
                     // 'newValue' es el string "Auto" o "Moto" que el usuario acaba de seleccionar.
-                    // Llama al método de carga de slots con el nuevo tipo.
+                    // Llama al metodo de carga de slots con el nuevo tipo.
                     cargarSlotsDisponibles(newValue);
                 }
         );
@@ -98,8 +98,11 @@ public class MainDashboardController {
                 return;
             }
 
-            // 2. Usamos el ParkingService (Facade) para registrar la salida
-            Ticket ticketPagado = parkingService.registrarSalida(ticketActivo.getId());
+            // OBTENER VALOR DEL CHECKBOX
+            boolean conLavado = lavadoCheckBox.isSelected();
+
+            // LLAMAR AL SERVICIO CON EL NUEVO PARÁMETRO
+            Ticket ticketPagado = parkingService.registrarSalida(ticketActivo.getId(), conLavado);
 
             // 3. Mostramos el resultado
             mostrarAlerta(Alert.AlertType.INFORMATION, "Salida Registrada",
@@ -111,6 +114,9 @@ public class MainDashboardController {
             String tipoSeleccionado = tipoVehiculoComboBox.getValue();
             cargarSlotsDisponibles(tipoSeleccionado);
 
+            // Opcional: limpiar el checkbox
+            lavadoCheckBox.setSelected(false);
+
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error en el Registro", e.getMessage());
             e.printStackTrace();
@@ -121,7 +127,7 @@ public class MainDashboardController {
      * Carga los espacios (slots) en el ComboBox, filtrando por el tipo de vehículo
      * y el estado "Disponible".
      *
-     * @param tipoVehiculo El tipo de vehículo ("Auto", "Moto") o null.
+     * @param tipoVehiculo El tipo de vehiculo ("Auto", "Moto") o null.
      */
     private void cargarSlotsDisponibles(String tipoVehiculo) {
         // 1. Limpia los items y deshabilita el ComboBox
@@ -149,7 +155,7 @@ public class MainDashboardController {
         } else {
             slotComboBox.getItems().addAll(slotsDisponibles);
             slotComboBox.setPromptText("Seleccionar espacio");
-            slotComboBox.setDisable(false); // ¡Habilítalo!
+            slotComboBox.setDisable(false);
         }
     }
 

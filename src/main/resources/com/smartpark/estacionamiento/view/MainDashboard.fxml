@@ -49,6 +49,15 @@
                 <TextField fx:id="placaSalidaTextField" promptText="ABC-123" />
             </HBox>
 
+            <HBox alignment="CENTER" spacing="10.0">
+                <Label text="Placa:" />
+                <TextField fx:id="placaSalidaTextField" promptText="ABC-123" />
+            </HBox>
+
+            <javafx.scene.control.CheckBox fx:id="lavadoCheckBox" text="Incluir Lavado (+S/20.00)" />
+
+            <Button text="Registrar Salida" ... />
+
             <Button text="Registrar Salida"
                     onAction="#handleRegistrarSalida"
                     style="-fx-font-size: 14px; -fx-background-color: #f44336; -fx-text-fill: white;" />

@@ -24,7 +24,6 @@ public class VehiculoDAO implements IDAO<Vehiculo, Long> {
             stmt.setLong(1, id);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                // Usamos el helper que ya corregiste, que usa la Factory
                 return extractVehiculoFromResultSet(rs);
             }
         } catch (SQLException e) {
@@ -33,7 +32,9 @@ public class VehiculoDAO implements IDAO<Vehiculo, Long> {
         return null;
     }
     @Override
-    public List<Vehiculo> getAll() { /* ... implement... */ return new ArrayList<>(); }
+    public List<Vehiculo> getAll() {
+        return new ArrayList<>();
+    }
     @Override
     public void save(Vehiculo vehiculo) {
         String sql = "INSERT INTO vehiculos (placa, tipoVehiculo, propietario) VALUES (?, ?, ?)";
@@ -49,16 +50,20 @@ public class VehiculoDAO implements IDAO<Vehiculo, Long> {
         } catch (SQLException e) { e.printStackTrace(); }
     }
     @Override
-    public void update(Vehiculo vehiculo) { /* ... implement... */ }
+    public void update(Vehiculo vehiculo) {
+
+    }
     @Override
-    public void delete(Vehiculo vehiculo) { /* ... implement... */ }
+    public void delete(Vehiculo vehiculo) {
+
+    }
 
     private Vehiculo extractVehiculoFromResultSet(ResultSet rs) throws SQLException {
 
         // 1. Obtenemos los datos de la BD
         long id = rs.getLong("id");
         String placa = rs.getString("placa");
-        String tipoVehiculo = rs.getString("tipoVehiculo"); // Ej: "Auto" o "Moto"
+        String tipoVehiculo = rs.getString("tipoVehiculo");
         String propietario = rs.getString("propietario");
 
         // 2. Usamos la Fábrica para crear la instancia correcta

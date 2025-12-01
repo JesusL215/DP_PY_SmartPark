@@ -4,6 +4,7 @@ import com.smartpark.estacionamiento.model.dao.*;
 import com.smartpark.estacionamiento.model.domain.*;
 import java.time.LocalDateTime;
 import com.smartpark.estacionamiento.patrones.creacional.factory.VehiculoFactory;
+import com.smartpark.estacionamiento.patrones.estructural.decorator.*;
 
 public class ParkingService {
     private VehiculoDAO vehiculoDAO;
@@ -25,8 +26,8 @@ public class ParkingService {
         ParkingSlot slot = parkingSlotDAO.get(slotId);
         if (slot == null) throw new Exception("El slot no existe.");
 
-        slot.ocupar(); // Patrón State en acción
-        parkingSlotDAO.update(slot); // Persiste el nuevo estado
+        slot.ocupar();
+        parkingSlotDAO.update(slot);
 
         Ticket ticket = new Ticket();
         ticket.setVehiculo(vehiculo);
@@ -45,31 +46,51 @@ public class ParkingService {
             throw new Exception("Ticket no válido.");
         }
         ticket.setHoraSalida(LocalDateTime.now());
-        // Ahora, el monto se calcula basado en la tarifa del Vehiculo
+        // el monto se calcula basado en la tarifa del Vehiculo
         double monto = calcularTarifa(ticket.getHoraEntrada(), ticket.getHoraSalida(), ticket.getVehiculo());
         ticket.setMontoPagado(monto);
         ticket.setEstado("PAGADO");
 
         ParkingSlot slot = ticket.getParkingSlot();
-        slot.liberar(); // Patrón State en acción
-        parkingSlotDAO.update(slot); // Persiste el nuevo estado
+        slot.liberar();
+        parkingSlotDAO.update(slot);
 
         ticketDAO.update(ticket);
         System.out.println("Salida registrada. Monto: " + monto);
         return ticket;
     }
 
-    /**
-     * El método de tarifa ahora usa el objeto Vehiculo
-     * para obtener la tarifa correcta (polimorfismo).
-     */
-    private double calcularTarifa(LocalDateTime entrada, LocalDateTime salida, Vehiculo vehiculo) {
-        long horas = java.time.Duration.between(entrada, salida).toHours();
-        if (horas < 1) horas = 1; // Cobro mínimo de 1 hora
+    public Ticket registrarSalida(Long ticketId, boolean conLavado) throws Exception {
+        Ticket ticket = ticketDAO.get(ticketId);
+        if (ticket == null || ticket.getEstado().equals("PAGADO")) {
+            throw new Exception("Ticket no válido o ya pagado.");
+        }
 
-        // Obtenemos la tarifa del objeto (5.0 para Auto, 2.5 para Moto)
-        double tarifaPorHora = vehiculo.getTarifaPorHora();
+        ticket.setHoraSalida(LocalDateTime.now());
 
-        return horas * tarifaPorHora;
+        // --- APLICACIÓN DEL PATRÓN DECORATOR ---
+        // 1. Empezamos con el costo base
+        IParkingCost costoFinal = new BaseParkingCost(ticket);
+
+        // 2. Si seleccionó lavado, "envolvemos" el objeto
+        if (conLavado) {
+            costoFinal = new CarWashDecorator(costoFinal);
+        }
+
+        // 3. Obtenemos el costo total calculado por la cadena de decoradores
+        double monto = costoFinal.getCosto();
+        // ----------------------------------------
+
+        ticket.setMontoPagado(monto);
+        ticket.setEstado("PAGADO");
+
+        ParkingSlot slot = ticket.getParkingSlot();
+        slot.liberar();
+        parkingSlotDAO.update(slot);
+        ticketDAO.update(ticket);
+
+        System.out.println("Salida registrada. " + costoFinal.getDescripcion() + ". Total: " + monto);
+        return ticket;
     }
+
 }

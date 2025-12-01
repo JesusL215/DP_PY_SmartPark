@@ -5,6 +5,7 @@ import com.smartpark.estacionamiento.patrones.creacional.singleton.DBConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 public class ParkingSlotDAO implements IDAO<ParkingSlot, Long> {
     private Connection connection = DBConnection.getInstance().getConnection();
     @Override

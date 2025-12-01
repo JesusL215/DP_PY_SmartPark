@@ -1,5 +1,6 @@
 package com.smartpark.estacionamiento.model.dao;
 import java.util.List;
+
 public interface IDAO<T, K> {
     T get(K id);
     List<T> getAll();

@@ -4,6 +4,7 @@ import com.smartpark.estacionamiento.patrones.creacional.singleton.DBConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 public class TicketDAO implements IDAO<Ticket, Long> {
     private Connection connection = DBConnection.getInstance().getConnection();
     // Ojo: Esta implementación simple asume que ya tienes los DAO inyectados
@@ -22,7 +23,9 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         return null;
     }
     @Override
-    public List<Ticket> getAll() { /* ... implement... */ return new ArrayList<>(); }
+    public List<Ticket> getAll() {
+        return new ArrayList<>();
+    }
     @Override
     public void save(Ticket ticket) {
         String sql = "INSERT INTO tickets (horaEntrada, estado, vehiculo_id, parkingslot_id) VALUES (?, ?, ?, ?)";
@@ -50,7 +53,9 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         } catch (SQLException e) { e.printStackTrace(); }
     }
     @Override
-    public void delete(Ticket ticket) { /* ... implement... */ }
+    public void delete(Ticket ticket) {
+
+    }
     private Ticket extractTicketFromResultSet(ResultSet rs) throws SQLException {
         Ticket t = new Ticket();
         t.setId(rs.getLong("id"));
@@ -59,8 +64,8 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         if(tsSalida != null) t.setHoraSalida(tsSalida.toLocalDateTime());
         t.setMontoPagado(rs.getDouble("montoPagado"));
         t.setEstado(rs.getString("estado"));
-        t.setVehiculo(vehiculoDAO.get(rs.getLong("vehiculo_id"))); // Reconstruye el objeto
-        t.setParkingSlot(parkingSlotDAO.get(rs.getLong("parkingslot_id"))); // Reconstruye el objeto
+        t.setVehiculo(vehiculoDAO.get(rs.getLong("vehiculo_id")));
+        t.setParkingSlot(parkingSlotDAO.get(rs.getLong("parkingslot_id")));
         return t;
     }
     /**
@@ -78,7 +83,6 @@ public class TicketDAO implements IDAO<Ticket, Long> {
             stmt.setString(1, placa);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                // Usamos el helper que ya tenías para crear el objeto Ticket
                 return extractTicketFromResultSet(rs);
             }
         } catch (SQLException e) {
