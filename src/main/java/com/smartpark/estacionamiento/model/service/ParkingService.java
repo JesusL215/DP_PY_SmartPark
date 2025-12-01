@@ -40,26 +40,17 @@ public class ParkingService {
         return ticket;
     }
 
+    /**
+     * Método antiguo para compatibilidad.
+     * Simplemente llama al método nuevo asumiendo que NO hay lavado.
+     */
     public Ticket registrarSalida(Long ticketId) throws Exception {
-        Ticket ticket = ticketDAO.get(ticketId);
-        if (ticket == null || ticket.getEstado().equals("PAGADO")) {
-            throw new Exception("Ticket no válido.");
-        }
-        ticket.setHoraSalida(LocalDateTime.now());
-        // el monto se calcula basado en la tarifa del Vehiculo
-        double monto = calcularTarifa(ticket.getHoraEntrada(), ticket.getHoraSalida(), ticket.getVehiculo());
-        ticket.setMontoPagado(monto);
-        ticket.setEstado("PAGADO");
-
-        ParkingSlot slot = ticket.getParkingSlot();
-        slot.liberar();
-        parkingSlotDAO.update(slot);
-
-        ticketDAO.update(ticket);
-        System.out.println("Salida registrada. Monto: " + monto);
-        return ticket;
+        return registrarSalida(ticketId, false);
     }
 
+    /**
+     * Método principal de salida usando el Patrón Decorator.
+     */
     public Ticket registrarSalida(Long ticketId, boolean conLavado) throws Exception {
         Ticket ticket = ticketDAO.get(ticketId);
         if (ticket == null || ticket.getEstado().equals("PAGADO")) {
@@ -72,7 +63,7 @@ public class ParkingService {
         // 1. Empezamos con el costo base
         IParkingCost costoFinal = new BaseParkingCost(ticket);
 
-        // 2. Si seleccionó lavado, "envolvemos" el objeto
+        // 2. Si seleccionó lavado, "decoramos" (envolvemos) el objeto
         if (conLavado) {
             costoFinal = new CarWashDecorator(costoFinal);
         }
@@ -92,5 +83,4 @@ public class ParkingService {
         System.out.println("Salida registrada. " + costoFinal.getDescripcion() + ". Total: " + monto);
         return ticket;
     }
-
 }
