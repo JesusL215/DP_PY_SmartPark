@@ -45,7 +45,11 @@
                         <Button text="Cobrar y Salir" onAction="#handleRegistrarSalida"
                                 styleClass="button-danger" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
                         <Button text="↩" onAction="#handleDeshacer"
-                                style="-fx-background-color: #95a5a6; -fx-text-fill: white;" tooltip="Deshacer última salida"/>
+                                style="-fx-background-color: #95a5a6; -fx-text-fill: white;">
+                            <tooltip>
+                                <Tooltip text="Deshacer última salida" />
+                            </tooltip>
+                        </Button>
                     </HBox>
                 </VBox>
 
