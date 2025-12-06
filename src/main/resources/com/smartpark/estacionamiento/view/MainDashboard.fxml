@@ -16,7 +16,7 @@
             <Label text="🅿️ SmartPark - Gestión Inteligente" styleClass="label-header"/>
         </HBox>
     </top>
-
+git
     <center>
         <SplitPane dividerPositions="0.4" style="-fx-background-color: transparent;">
 
