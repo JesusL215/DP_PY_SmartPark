@@ -58,6 +58,7 @@ public class ParkingService {
         }
 
         ticket.setHoraSalida(LocalDateTime.now());
+        ticket.setIncluyeLavado(conLavado);
 
         // --- APLICACIÓN DEL PATRÓN DECORATOR ---
         // 1. Empezamos con el costo base

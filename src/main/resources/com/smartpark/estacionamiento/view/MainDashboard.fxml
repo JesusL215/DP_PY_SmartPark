@@ -55,8 +55,12 @@
 
                 <Separator/>
 
-                <Button text="Ver Reporte Financiero (Admin)" onAction="#handleVerReporte"
+                <Button text="Ver Reporte Financiero" onAction="#handleVerReporte"
                         styleClass="button-action" maxWidth="Infinity"/>
+
+                <Button text="Ver Historial Completo" onAction="#handleVerHistorial"
+                        style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;"
+                        maxWidth="Infinity"/>
             </VBox>
 
             <VBox spacing="15" styleClass="panel-container">

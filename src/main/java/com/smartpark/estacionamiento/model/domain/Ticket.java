@@ -8,6 +8,8 @@ public class Ticket {
     private String estado;
     private Vehiculo vehiculo;
     private ParkingSlot parkingSlot;
+    private boolean incluyeLavado; // <-- NUEVO CAMPO
+
     // --- Getters y Setters ---
     public long getId() {
         return id;
@@ -50,5 +52,15 @@ public class Ticket {
     }
     public void setParkingSlot(ParkingSlot parkingSlot) {
         this.parkingSlot = parkingSlot;
+    }
+    public boolean isIncluyeLavado() {
+        return incluyeLavado;
+    }
+    public void setIncluyeLavado(boolean incluyeLavado) {
+        this.incluyeLavado = incluyeLavado;
+    }
+    // Metodo auxiliar para mostrar "Sí" o "No" en la tabla
+    public String getLavadoTexto() {
+        return incluyeLavado ? "Sí" : "No";
     }
 }

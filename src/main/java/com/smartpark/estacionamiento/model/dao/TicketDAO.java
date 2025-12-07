@@ -7,7 +7,7 @@ import java.util.List;
 
 public class TicketDAO implements IDAO<Ticket, Long> {
     private Connection connection = DBConnection.getInstance().getConnection();
-    // Ojo: Esta implementación simple asume que ya tienes los DAO inyectados
+    // Esta implementación simple asume que ya tienes los DAO inyectados
     // pero para simplicidad los instanciamos aquí.
     private VehiculoDAO vehiculoDAO = new VehiculoDAO();
     private ParkingSlotDAO parkingSlotDAO = new ParkingSlotDAO();
@@ -26,14 +26,18 @@ public class TicketDAO implements IDAO<Ticket, Long> {
     public List<Ticket> getAll() {
         return new ArrayList<>();
     }
+
+    // 1. Actualizar el método SAVE (agregamos la columna incluye_lavado)
     @Override
     public void save(Ticket ticket) {
-        String sql = "INSERT INTO tickets (horaEntrada, estado, vehiculo_id, parkingslot_id) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO tickets (horaEntrada, estado, vehiculo_id, parkingslot_id, incluye_lavado) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setTimestamp(1, Timestamp.valueOf(ticket.getHoraEntrada()));
             stmt.setString(2, ticket.getEstado());
             stmt.setLong(3, ticket.getVehiculo().getId());
             stmt.setLong(4, ticket.getParkingSlot().getId());
+            stmt.setBoolean(5, ticket.isIncluyeLavado());
+
             if (stmt.executeUpdate() > 0) {
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) ticket.setId(rs.getLong(1));
@@ -41,14 +45,17 @@ public class TicketDAO implements IDAO<Ticket, Long> {
             }
         } catch (SQLException e) { e.printStackTrace(); }
     }
+
+    // 2. Actualizar el método UPDATE (para guardar si hubo lavado al salir)
     @Override
     public void update(Ticket ticket) {
-        String sql = "UPDATE tickets SET horaSalida = ?, montoPagado = ?, estado = ? WHERE id = ?";
+        String sql = "UPDATE tickets SET horaSalida = ?, montoPagado = ?, estado = ?, incluye_lavado = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setTimestamp(1, Timestamp.valueOf(ticket.getHoraSalida()));
             stmt.setDouble(2, ticket.getMontoPagado());
             stmt.setString(3, ticket.getEstado());
-            stmt.setLong(4, ticket.getId());
+            stmt.setBoolean(4, ticket.isIncluyeLavado());
+            stmt.setLong(5, ticket.getId());
             stmt.executeUpdate();
         } catch (SQLException e) { e.printStackTrace(); }
     }
@@ -56,6 +63,8 @@ public class TicketDAO implements IDAO<Ticket, Long> {
     public void delete(Ticket ticket) {
 
     }
+
+    // 3. Actualizar el EXTRACTOR (para leer el dato de la BD)
     private Ticket extractTicketFromResultSet(ResultSet rs) throws SQLException {
         Ticket t = new Ticket();
         t.setId(rs.getLong("id"));
@@ -64,9 +73,26 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         if(tsSalida != null) t.setHoraSalida(tsSalida.toLocalDateTime());
         t.setMontoPagado(rs.getDouble("montoPagado"));
         t.setEstado(rs.getString("estado"));
+        t.setIncluyeLavado(rs.getBoolean("incluye_lavado"));
+
         t.setVehiculo(vehiculoDAO.get(rs.getLong("vehiculo_id")));
         t.setParkingSlot(parkingSlotDAO.get(rs.getLong("parkingslot_id")));
         return t;
+    }
+
+    // 4. Implementar GET ALL (Para el historial)
+    @Override
+    public List<Ticket> getAll() {
+        List<Ticket> historial = new ArrayList<>();
+        // Ordenamos por hora de entrada descendente (lo más reciente primero)
+        String sql = "SELECT * FROM tickets ORDER BY horaEntrada DESC";
+        try (Statement stmt = connection.createStatement()) {
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                historial.add(extractTicketFromResultSet(rs));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return historial;
     }
     /**
      * Busca un ticket activo (no pagado) usando la placa del vehículo.

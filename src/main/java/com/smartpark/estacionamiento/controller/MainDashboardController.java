@@ -8,6 +8,11 @@ import com.smartpark.estacionamiento.patrones.comportamiento.memento.TicketMemen
 import com.smartpark.estacionamiento.patrones.comportamiento.observer.Observer;
 import com.smartpark.estacionamiento.patrones.comportamiento.observer.ParkingNotifier;
 import com.smartpark.estacionamiento.patrones.estructural.proxy.ProxyReportService;
+import com.smartpark.estacionamiento.patrones.estructural.proxy.HistoryCacheProxy;
+import com.smartpark.estacionamiento.model.service.RealReportService;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -29,6 +34,7 @@ public class MainDashboardController implements Observer {
     private ParkingSlotDAO parkingSlotDAO;
     private TicketDAO ticketDAO;
     private Caretaker caretaker = new Caretaker(); // Memento
+    private HistoryCacheProxy historyProxy = new HistoryCacheProxy();
 
     @FXML
     public void initialize() {
@@ -53,7 +59,7 @@ public class MainDashboardController implements Observer {
         actualizarMapaVisual();
     }
 
-    // --- PATRÓN OBSERVER: Método que se llama cuando algo cambia ---
+    // --- PATRÓN OBSERVER: Metodo que se llama cuando algo cambia ---
     @Override
     public void update() {
         // Ejecutar en el hilo de UI de JavaFX
@@ -170,16 +176,62 @@ public class MainDashboardController implements Observer {
     // --- PATRÓN PROXY: Reportes ---
     @FXML
     private void handleVerReporte() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Seguridad");
-        dialog.setHeaderText("Acceso Administrativo");
-        dialog.setContentText("Ingrese contraseña:");
+        RealReportService service = new RealReportService();
+        String reporte = service.generarReporteDiario();
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Reporte Financiero", reporte);
+    }
 
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(password -> {
-            ProxyReportService proxy = new ProxyReportService(password);
-            String reporte = proxy.generarReporteDiario();
-            mostrarAlerta(Alert.AlertType.INFORMATION, "Reporte", reporte);
+    // Metodo para ver la tabla de historial (Usa Proxy de Caché)
+    @FXML
+    private void handleVerHistorial() {
+        // Obtenemos los datos a través del Proxy
+        List<Ticket> historial = historyProxy.obtenerHistorialCompleto();
+
+        // Creamos una ventana (Stage) para mostrar la tabla
+        TableView<Ticket> tabla = new TableView<>();
+
+        // Columna Placa (Accedemos a través del objeto Vehiculo)
+        TableColumn<Ticket, String> colPlaca = new TableColumn<>("Placa");
+        colPlaca.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
+                cell.getValue().getVehiculo().getPlaca()));
+
+        // Columna Entrada
+        TableColumn<Ticket, String> colEntrada = new TableColumn<>("Entrada");
+        colEntrada.setCellValueFactory(new PropertyValueFactory<>("horaEntrada"));
+
+        // Columna Salida
+        TableColumn<Ticket, String> colSalida = new TableColumn<>("Salida");
+        colSalida.setCellValueFactory(new PropertyValueFactory<>("horaSalida"));
+
+        // Columna Lavado (El nuevo campo)
+        TableColumn<Ticket, String> colLavado = new TableColumn<>("Lavado");
+        colLavado.setCellValueFactory(new PropertyValueFactory<>("lavadoTexto")); // Llama a getLavadoTexto()
+
+        // Columna Monto
+        TableColumn<Ticket, Double> colMonto = new TableColumn<>("Monto (S/)");
+        colMonto.setCellValueFactory(new PropertyValueFactory<>("montoPagado"));
+
+        tabla.getColumns().addAll(colPlaca, colEntrada, colSalida, colLavado, colMonto);
+        tabla.getItems().addAll(historial);
+
+        Scene scene = new Scene(tabla, 600, 400);
+        Stage stage = new Stage();
+        stage.setTitle("Historial de Vehículos (Cache Proxy)");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    // ACTUALIZAR: Invalida la caché cuando hay cambios
+    @Override
+    public void update() {
+        Platform.runLater(() -> {
+            actualizarMapaVisual();
+            cargarSlotsDisponibles(tipoVehiculoComboBox.getValue());
+
+            // ¡IMPORTANTE! Si entra o sale un auto, la caché vieja ya no sirve.
+            historyProxy.invalidarCache();
+
+            statusLabel.setText("Datos actualizados.");
         });
     }
 
