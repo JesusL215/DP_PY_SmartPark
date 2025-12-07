@@ -7,7 +7,6 @@ import com.smartpark.estacionamiento.patrones.comportamiento.memento.Caretaker;
 import com.smartpark.estacionamiento.patrones.comportamiento.memento.TicketMemento;
 import com.smartpark.estacionamiento.patrones.comportamiento.observer.Observer;
 import com.smartpark.estacionamiento.patrones.comportamiento.observer.ParkingNotifier;
-import com.smartpark.estacionamiento.patrones.estructural.proxy.ProxyReportService;
 import com.smartpark.estacionamiento.patrones.estructural.proxy.HistoryCacheProxy;
 import com.smartpark.estacionamiento.model.service.RealReportService;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -18,22 +17,20 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-// Implementamos Observer para escuchar cambios
 public class MainDashboardController implements Observer {
 
     @FXML private TextField placaTextField, placaSalidaTextField;
     @FXML private ComboBox<String> tipoVehiculoComboBox, slotComboBox;
     @FXML private CheckBox lavadoCheckBox;
     @FXML private Label statusLabel;
-    @FXML private GridPane parkingGrid; // El mapa visual
+    @FXML private GridPane parkingGrid;
 
     private ParkingService parkingService;
     private ParkingSlotDAO parkingSlotDAO;
     private TicketDAO ticketDAO;
-    private Caretaker caretaker = new Caretaker(); // Memento
+    private Caretaker caretaker = new Caretaker();
     private HistoryCacheProxy historyProxy = new HistoryCacheProxy();
 
     @FXML
@@ -43,29 +40,26 @@ public class MainDashboardController implements Observer {
         this.parkingSlotDAO = new ParkingSlotDAO();
         this.parkingService = new ParkingService(vehiculoDAO, ticketDAO, parkingSlotDAO);
 
-        // Configuración inicial
         tipoVehiculoComboBox.getItems().addAll("Auto", "Moto");
 
-        // Listener para ComboBox (Lógica existente)
         cargarSlotsDisponibles(null);
         tipoVehiculoComboBox.getSelectionModel().selectedItemProperty().addListener(
                 (obs, old, newVal) -> cargarSlotsDisponibles(newVal)
         );
 
-        // PATRÓN OBSERVER: Nos suscribimos a las notificaciones
         ParkingNotifier.getInstance().attach(this);
-
-        // Cargar el mapa visual inicial
         actualizarMapaVisual();
     }
 
-    // --- PATRÓN OBSERVER: Metodo que se llama cuando algo cambia ---
+    // --- PATRÓN OBSERVER: ÚNICA IMPLEMENTACION ---
     @Override
     public void update() {
-        // Ejecutar en el hilo de UI de JavaFX
         Platform.runLater(() -> {
             actualizarMapaVisual();
             cargarSlotsDisponibles(tipoVehiculoComboBox.getValue());
+
+            historyProxy.invalidarCache();
+
             statusLabel.setText("Mapa actualizado en tiempo real.");
         });
     }
@@ -88,7 +82,6 @@ public class MainDashboardController implements Observer {
                 btn.getStyleClass().add("slot-occupied");
             }
 
-            // Al hacer clic en un cuadrito, se selecciona automáticamente en el formulario
             btn.setOnAction(e -> {
                 if ("Disponible".equals(slot.getCurrentState().getEstado())) {
                     tipoVehiculoComboBox.setValue(slot.getTipo());
@@ -98,14 +91,13 @@ public class MainDashboardController implements Observer {
 
             parkingGrid.add(btn, col, row);
             col++;
-            if (col > 3) { col = 0; row++; } // 4 columnas
+            if (col > 3) { col = 0; row++; }
         }
     }
 
     @FXML
     private void handleRegistrarEntrada() {
         try {
-            // ... (Tu lógica de validación existente) ...
             String placa = placaTextField.getText();
             String tipo = tipoVehiculoComboBox.getValue();
             String slotNum = slotComboBox.getValue();
@@ -119,8 +111,6 @@ public class MainDashboardController implements Observer {
                     .findFirst().get().getId();
 
             parkingService.registrarEntrada(placa, tipo, slotId);
-
-            // NOTIFICAR CAMBIO (OBSERVER)
             ParkingNotifier.getInstance().notifyObservers();
 
             mostrarAlerta(Alert.AlertType.INFORMATION, "Éxito", "Entrada registrada.");
@@ -143,12 +133,8 @@ public class MainDashboardController implements Observer {
                 mostrarAlerta(Alert.AlertType.ERROR, "Error", "No encontrado."); return;
             }
 
-            // PATRÓN MEMENTO: Guardar estado antes de salir
             caretaker.guardar(new TicketMemento(ticket.getId(), "ACTIVO", 0.0));
-
             Ticket pagado = parkingService.registrarSalida(ticket.getId(), lavadoCheckBox.isSelected());
-
-            // NOTIFICAR CAMBIO (OBSERVER)
             ParkingNotifier.getInstance().notifyObservers();
 
             mostrarAlerta(Alert.AlertType.INFORMATION, "Salida", "Total: S/" + pagado.getMontoPagado());
@@ -160,20 +146,16 @@ public class MainDashboardController implements Observer {
         }
     }
 
-    // --- PATRÓN MEMENTO: Deshacer ---
     @FXML
     private void handleDeshacer() {
         TicketMemento memento = caretaker.deshacer();
         if (memento != null) {
-            // Aquí iría la lógica para revertir en BD (update ticket set state=ACTIVO...)
-            // Por simplicidad en este demo, solo mostramos que el patrón funciona:
             mostrarAlerta(Alert.AlertType.INFORMATION, "Memento", "Se restauraría el ticket ID: " + memento.getTicketId());
         } else {
             mostrarAlerta(Alert.AlertType.WARNING, "Memento", "No hay acciones para deshacer.");
         }
     }
 
-    // --- PATRÓN PROXY: Reportes ---
     @FXML
     private void handleVerReporte() {
         RealReportService service = new RealReportService();
@@ -181,33 +163,25 @@ public class MainDashboardController implements Observer {
         mostrarAlerta(Alert.AlertType.INFORMATION, "Reporte Financiero", reporte);
     }
 
-    // Metodo para ver la tabla de historial (Usa Proxy de Caché)
     @FXML
     private void handleVerHistorial() {
-        // Obtenemos los datos a través del Proxy
         List<Ticket> historial = historyProxy.obtenerHistorialCompleto();
 
-        // Creamos una ventana (Stage) para mostrar la tabla
         TableView<Ticket> tabla = new TableView<>();
 
-        // Columna Placa (Accedemos a través del objeto Vehiculo)
         TableColumn<Ticket, String> colPlaca = new TableColumn<>("Placa");
         colPlaca.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
                 cell.getValue().getVehiculo().getPlaca()));
 
-        // Columna Entrada
         TableColumn<Ticket, String> colEntrada = new TableColumn<>("Entrada");
         colEntrada.setCellValueFactory(new PropertyValueFactory<>("horaEntrada"));
 
-        // Columna Salida
         TableColumn<Ticket, String> colSalida = new TableColumn<>("Salida");
         colSalida.setCellValueFactory(new PropertyValueFactory<>("horaSalida"));
 
-        // Columna Lavado (El nuevo campo)
         TableColumn<Ticket, String> colLavado = new TableColumn<>("Lavado");
-        colLavado.setCellValueFactory(new PropertyValueFactory<>("lavadoTexto")); // Llama a getLavadoTexto()
+        colLavado.setCellValueFactory(new PropertyValueFactory<>("lavadoTexto"));
 
-        // Columna Monto
         TableColumn<Ticket, Double> colMonto = new TableColumn<>("Monto (S/)");
         colMonto.setCellValueFactory(new PropertyValueFactory<>("montoPagado"));
 
@@ -221,23 +195,7 @@ public class MainDashboardController implements Observer {
         stage.show();
     }
 
-    // ACTUALIZAR: Invalida la caché cuando hay cambios
-    @Override
-    public void update() {
-        Platform.runLater(() -> {
-            actualizarMapaVisual();
-            cargarSlotsDisponibles(tipoVehiculoComboBox.getValue());
-
-            // ¡IMPORTANTE! Si entra o sale un auto, la caché vieja ya no sirve.
-            historyProxy.invalidarCache();
-
-            statusLabel.setText("Datos actualizados.");
-        });
-    }
-
     private void cargarSlotsDisponibles(String tipo) {
-        // ... (Tu lógica existente se mantiene igual) ...
-        // Asegúrate de copiar tu método cargarSlotsDisponibles aquí
         if (tipo == null) {
             slotComboBox.getItems().clear();
             slotComboBox.setDisable(true);

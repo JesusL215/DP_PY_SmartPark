@@ -1,4 +1,5 @@
 package com.smartpark.estacionamiento.model.dao;
+
 import com.smartpark.estacionamiento.model.domain.*;
 import com.smartpark.estacionamiento.patrones.creacional.singleton.DBConnection;
 import java.sql.*;
@@ -7,8 +8,8 @@ import java.util.List;
 
 public class TicketDAO implements IDAO<Ticket, Long> {
     private Connection connection = DBConnection.getInstance().getConnection();
-    // Esta implementación simple asume que ya tienes los DAO inyectados
-    // pero para simplicidad los instanciamos aquí.
+
+    // Instancias para reconstruir relaciones
     private VehiculoDAO vehiculoDAO = new VehiculoDAO();
     private ParkingSlotDAO parkingSlotDAO = new ParkingSlotDAO();
 
@@ -22,12 +23,21 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         } catch (SQLException e) { e.printStackTrace(); }
         return null;
     }
+
     @Override
     public List<Ticket> getAll() {
-        return new ArrayList<>();
+        List<Ticket> historial = new ArrayList<>();
+        // Ordenamos por hora de entrada descendente (lo más reciente primero)
+        String sql = "SELECT * FROM tickets ORDER BY horaEntrada DESC";
+        try (Statement stmt = connection.createStatement()) {
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                historial.add(extractTicketFromResultSet(rs));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return historial;
     }
 
-    // 1. Actualizar el método SAVE (agregamos la columna incluye_lavado)
     @Override
     public void save(Ticket ticket) {
         String sql = "INSERT INTO tickets (horaEntrada, estado, vehiculo_id, parkingslot_id, incluye_lavado) VALUES (?, ?, ?, ?, ?)";
@@ -46,7 +56,6 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    // 2. Actualizar el método UPDATE (para guardar si hubo lavado al salir)
     @Override
     public void update(Ticket ticket) {
         String sql = "UPDATE tickets SET horaSalida = ?, montoPagado = ?, estado = ?, incluye_lavado = ? WHERE id = ?";
@@ -59,12 +68,10 @@ public class TicketDAO implements IDAO<Ticket, Long> {
             stmt.executeUpdate();
         } catch (SQLException e) { e.printStackTrace(); }
     }
+
     @Override
-    public void delete(Ticket ticket) {
+    public void delete(Ticket ticket) { /* No implementado */ }
 
-    }
-
-    // 3. Actualizar el EXTRACTOR (para leer el dato de la BD)
     private Ticket extractTicketFromResultSet(ResultSet rs) throws SQLException {
         Ticket t = new Ticket();
         t.setId(rs.getLong("id"));
@@ -80,27 +87,7 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         return t;
     }
 
-    // 4. Implementar GET ALL (Para el historial)
-    @Override
-    public List<Ticket> getAll() {
-        List<Ticket> historial = new ArrayList<>();
-        // Ordenamos por hora de entrada descendente (lo más reciente primero)
-        String sql = "SELECT * FROM tickets ORDER BY horaEntrada DESC";
-        try (Statement stmt = connection.createStatement()) {
-            ResultSet rs = stmt.executeQuery(sql);
-            while (rs.next()) {
-                historial.add(extractTicketFromResultSet(rs));
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return historial;
-    }
-    /**
-     * Busca un ticket activo (no pagado) usando la placa del vehículo.
-     * @param placa La placa del vehículo.
-     * @return El Ticket activo, o null si no se encuentra.
-     */
     public Ticket findActiveTicketByPlaca(String placa) {
-        // Esta consulta SQL une las tablas tickets y vehiculos
         String sql = "SELECT t.* FROM tickets t " +
                 "JOIN vehiculos v ON t.vehiculo_id = v.id " +
                 "WHERE v.placa = ? AND t.estado = 'ACTIVO'";
@@ -114,6 +101,6 @@ public class TicketDAO implements IDAO<Ticket, Long> {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // No se encontró un ticket activo para esa placa
+        return null;
     }
 }
