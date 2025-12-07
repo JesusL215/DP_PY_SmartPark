@@ -60,7 +60,12 @@ public class TicketDAO implements IDAO<Ticket, Long> {
     public void update(Ticket ticket) {
         String sql = "UPDATE tickets SET horaSalida = ?, montoPagado = ?, estado = ?, incluye_lavado = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setTimestamp(1, Timestamp.valueOf(ticket.getHoraSalida()));
+            // Lógica para manejar fecha nula (Requerido para el Deshacer/Memento)
+            if (ticket.getHoraSalida() != null) {
+                stmt.setTimestamp(1, Timestamp.valueOf(ticket.getHoraSalida()));
+            } else {
+                stmt.setNull(1, Types.TIMESTAMP);
+            }
             stmt.setDouble(2, ticket.getMontoPagado());
             stmt.setString(3, ticket.getEstado());
             stmt.setBoolean(4, ticket.isIncluyeLavado());

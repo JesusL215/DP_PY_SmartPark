@@ -148,9 +148,35 @@ public class MainDashboardController implements Observer {
 
     @FXML
     private void handleDeshacer() {
+        // 1. Recuperar el recuerdo (Memento)
         TicketMemento memento = caretaker.deshacer();
+
         if (memento != null) {
-            mostrarAlerta(Alert.AlertType.INFORMATION, "Memento", "Se restauraría el ticket ID: " + memento.getTicketId());
+            try {
+                // 2. Obtener el ticket actual de la BD
+                Ticket ticket = ticketDAO.get(memento.getTicketId());
+
+                // 3. Restaurar los valores anteriores (Revertir salida)
+                ticket.setEstado(memento.getEstadoAnterior()); // Vuelve a "ACTIVO"
+                ticket.setMontoPagado(memento.getMontoAnterior()); // Vuelve a 0.0
+                ticket.setHoraSalida(null); // Borra la hora de salida
+
+                // 4. Guardar cambios del Ticket en BD
+                ticketDAO.update(ticket);
+
+                // 5. Revertir también el espacio (Volver a ocuparlo)
+                ParkingSlot slot = ticket.getParkingSlot();
+                slot.ocupar(); // Cambia estado en memoria
+                parkingSlotDAO.update(slot); // Cambia estado en BD
+
+                // 6. Actualizar la vista
+                ParkingNotifier.getInstance().notifyObservers();
+                mostrarAlerta(Alert.AlertType.INFORMATION, "Deshacer", "Se restauró el Ticket #" + ticket.getId());
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo deshacer la acción.");
+            }
         } else {
             mostrarAlerta(Alert.AlertType.WARNING, "Memento", "No hay acciones para deshacer.");
         }
