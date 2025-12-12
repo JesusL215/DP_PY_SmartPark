@@ -41,15 +41,15 @@ public class ParkingService {
     }
 
     /**
-     * Método antiguo para compatibilidad.
-     * Simplemente llama al método nuevo asumiendo que NO hay lavado.
+     * Metodo para compatibilidad.
+     * Simplemente llama al metodo nuevo asumiendo que NO hay lavado.
      */
     public Ticket registrarSalida(Long ticketId) throws Exception {
         return registrarSalida(ticketId, false);
     }
 
     /**
-     * Método principal de salida usando el Patrón Decorator.
+     * Metodo principal de salida usando el Patrón Decorator.
      */
     public Ticket registrarSalida(Long ticketId, boolean conLavado) throws Exception {
         Ticket ticket = ticketDAO.get(ticketId);
