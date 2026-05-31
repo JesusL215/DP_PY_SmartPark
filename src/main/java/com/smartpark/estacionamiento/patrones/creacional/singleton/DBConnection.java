@@ -8,13 +8,13 @@ public class DBConnection {
     private static volatile DBConnection instance;
     private Connection connection;
 
-    private static final String URL = "jdbc:mysql://localhost:3306/gestion_estacionamiento_db";
-    private static final String USER = "root";
-    private static final String PASSWORD = "root215"; //
+    private static final String URL = "jdbc:postgresql://localhost:5432/gestion_estacionamiento_db";
+    private static final String USER = "postgres";
+    private static final String PASSWORD = "root215";
 
     private DBConnection() {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            Class.forName("org.postgresql.Driver");
             this.connection = DriverManager.getConnection(URL, USER, PASSWORD);
             System.out.println("¡Conexión a la base de datos exitosa!");
         } catch (Exception e) {
